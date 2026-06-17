@@ -16,9 +16,8 @@ st.markdown("Dashboard interaktif ini menyajikan visualisasi data dari hasil kue
 # 3. Fungsi untuk Memuat Data
 @st.cache_data
 def load_data():
-    # Membaca data (Pastikan file 'Data responden.xlsx' berada di folder yang sama di GitHub nanti)
     df = pd.read_excel("Data responden.xlsx")
-    # Pembersihan data ringan seperti di notebook Anda
+    # Bersihkan spasi di nama kolom
     df.columns = df.columns.str.strip()
     if "Program Studi" in df.columns:
         df["Program Studi"] = df["Program Studi"].str.strip().str.title()
@@ -47,20 +46,21 @@ try:
         
     # 5. Menampilkan Metrik Utama (KPI) di Bagian Atas
     col1, col2, col3 = st.columns(3)
+    total = df_filtered.shape[0]
     with col1:
-        st.metric("Total Responden (Terfilter)", f"{df_filtered.shape[0]} orang")
+        st.metric("Total Responden (Terfilter)", f"{total} orang")
     with col2:
-        # Menghitung persentase perempuan
-        total = df_filtered.shape[0]
         if total > 0 and "Jenis Kelamin" in df_filtered.columns:
             p_count = df_filtered[df_filtered["Jenis Kelamin"] == "Perempuan"].shape[0]
             st.metric("Responden Perempuan", f"{(p_count/total)*100:.1f}%")
         else:
             st.metric("Responden Perempuan", "0%")
     with col3:
-        if total > 0 and "Apakah Anda mengaktifkan notifikasi media sosial di ponsel?" in df_filtered.columns:
-            notif_ya = df_filtered[df_filtered["Apakah Anda mengaktifkan notifikasi media sosial di ponsel?"] == "Ya"].shape[0]
-            st.metric("Notifikasi Aktif", f"{(notif_ya/total)*100:.1f}%")
+        # Otomatis cari kolom notifikasi berdasarkan kata kunci 'notifikasi'
+        col_notif = [c for c in df_filtered.columns if 'notifikasi' in c.lower()]
+        if total > 0 and col_notif:
+            notif_ya = df_filtered[df_filtered[col_notif[0]] == "Ya"].shape[0]
+            st.metric("Notifikasi Hack", f"{(notif_ya/total)*100:.1f}%")
         else:
             st.metric("Notifikasi Aktif", "0%")
 
@@ -70,13 +70,17 @@ try:
     if df_filtered.empty:
         st.warning("Data tidak tersedia untuk kombinasi filter ini. Silakan ubah filter Anda.")
     else:
+        # OTOMATIS MENCARI KOLOM BERDASARKAN KATA KUNCI (Mencegah salah nama kolom)
+        col_durasi = [c for c in df_filtered.columns if 'lama rata-rata' in c.lower() or 'durasi' in c.lower() or 'berapa lama' in c.lower()][0]
+        col_fokus = [c for c in df_filtered.columns if 'fokus anda saat belajar' in c.lower() or 'seberapa fokus' in c.lower()][0]
+        col_buka = [c for c in df_filtered.columns if 'membuka media sosial' in c.lower() or 'sering anda membuka' in c.lower()][0]
+        col_pengaruh = [c for c in df_filtered.columns if 'pengaruh penggunaan' in c.lower() or 'dampak' in c.lower() or 'kebiasaan belajar' in c.lower() or 'pengaruh media' in c.lower()][0]
+
         # 6. Baris Grafik Bagian Pertama (Visualisasi Durasi & Fokus)
         st.subheader("📈 Analisis Durasi & Tingkat Fokus")
         left_chart, right_chart = st.columns(2)
         
         with left_chart:
-            # Grafik 1: Durasi Penggunaan Media Sosial Harian
-            col_durasi = "Berapa lama rata-rata Anda menggunakan media sosial setiap hari?"
             df_durasi = df_filtered[col_durasi].value_counts().reset_index()
             df_durasi.columns = ['Durasi', 'Jumlah']
             
@@ -89,8 +93,6 @@ try:
             st.plotly_chart(fig_durasi, use_container_width=True)
             
         with right_chart:
-            # Grafik 2: Tingkat Fokus Mahasiswa Saat Belajar
-            col_fokus = df_filtered.columns[5] # Memastikan pakai indeks kolom agar aman
             df_fokus = df_filtered[col_fokus].value_counts().reset_index()
             df_fokus.columns = ['Tingkat Fokus', 'Jumlah']
             
@@ -104,17 +106,15 @@ try:
                 title="Tingkat Fokus Mahasiswa Saat Belajar",
                 labels={'Tingkat Fokus': 'Kategori Fokus', 'Jumlah': 'Jumlah Mahasiswa'},
                 color='Tingkat Fokus', 
-                color_discrete_sequence=px.colors.sequential.Viridis # DIUBAH: Menggunakan 'Viridis' atau 'Blues' yang pasti ada
+                color_discrete_sequence=px.colors.sequential.Viridis
             )
-            st.plotly_chart(fig_fokus, width='stretch') # DIUBAH: use_container_width=True diganti width='stretch'
+            st.plotly_chart(fig_fokus, use_container_width=True)
 
         # 7. Baris Grafik Bagian Kedua (Distribusi Frekuensi & Pengaruh)
         st.subheader("🔍 Korelasi Perilaku Belajar & Media Sosial")
         bottom_left, bottom_right = st.columns(2)
         
         with bottom_left:
-            # Grafik 3: Seberapa sering membuka medsos saat belajar
-            col_buka = "Seberapa sering Anda membuka media sosial saat sedang belajar?"
             df_buka = df_filtered[col_buka].value_counts().reset_index()
             df_buka.columns = ['Frekuensi', 'Jumlah']
             
@@ -126,8 +126,6 @@ try:
             st.plotly_chart(fig_buka, use_container_width=True)
             
         with bottom_right:
-            # Grafik 4: Pengaruh penggunaan media sosial harian terhadap kebiasaan belajar
-            col_pengaruh = "Bagaimana pengaruh media sosial pengaruh penggunaan media sosial terhadap kebiasaan belajar Anda sehari-hari?"
             df_pengaruh = df_filtered[col_pengaruh].value_counts().reset_index()
             df_pengaruh.columns = ['Dampak', 'Jumlah']
             
@@ -141,3 +139,5 @@ try:
 
 except FileNotFoundError:
     st.error("❌ File 'Data responden.xlsx' tidak ditemukan! Pastikan file excel berada di dalam satu direktori repository GitHub Anda.")
+except IndexError:
+    st.error("❌ Gagal mendeteksi kolom kuesioner! Periksa apakah pertanyaan di file Excel Anda sudah benar atau sedikit berbeda kata-katanya.")
