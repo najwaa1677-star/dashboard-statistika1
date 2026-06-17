@@ -90,7 +90,7 @@ try:
             
         with right_chart:
             # Grafik 2: Tingkat Fokus Mahasiswa Saat Belajar
-            col_fokus = "Seberapa fokus Anda saat belajar?"
+            col_fokus = df_filtered.columns[5] # Memastikan pakai indeks kolom agar aman
             df_fokus = df_filtered[col_fokus].value_counts().reset_index()
             df_fokus.columns = ['Tingkat Fokus', 'Jumlah']
             
@@ -103,9 +103,10 @@ try:
                 df_fokus, x='Tingkat Fokus', y='Jumlah',
                 title="Tingkat Fokus Mahasiswa Saat Belajar",
                 labels={'Tingkat Fokus': 'Kategori Fokus', 'Jumlah': 'Jumlah Mahasiswa'},
-                color='Tingkat Fokus', color_discrete_sequence=px.colors.sequential.Flare
+                color='Tingkat Fokus', 
+                color_discrete_sequence=px.colors.sequential.Viridis # DIUBAH: Menggunakan 'Viridis' atau 'Blues' yang pasti ada
             )
-            st.plotly_chart(fig_fokus, use_container_width=True)
+            st.plotly_chart(fig_fokus, width='stretch') # DIUBAH: use_container_width=True diganti width='stretch'
 
         # 7. Baris Grafik Bagian Kedua (Distribusi Frekuensi & Pengaruh)
         st.subheader("🔍 Korelasi Perilaku Belajar & Media Sosial")
